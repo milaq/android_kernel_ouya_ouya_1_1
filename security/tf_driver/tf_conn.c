@@ -648,19 +648,21 @@ error:
  * requested GID */
 static bool tf_check_gid(gid_t requested_gid)
 {
-	if (requested_gid == current_egid()) {
-		return true;
-	} else {
+	bool retval = requested_gid == current_egid();
+	if (!retval) {
+		struct group_info *gi;
 		u32    size;
 		u32    i;
+
 		/* Look in the supplementary GIDs */
-		get_group_info(GROUP_INFO);
-		size = GROUP_INFO->ngroups;
-		for (i = 0; i < size; i++)
-			if (requested_gid == GROUP_AT(GROUP_INFO , i))
-				return true;
+		gi = get_group_info(get_current_groups());
+		size = gi->ngroups;
+		for (i = 0; !retval && i < size; i++)
+			if (requested_gid == GROUP_AT(gi, i))
+				retval = true;
+		put_group_info(gi);
 	}
-	return false;
+	return retval;
 }
 
 /*
